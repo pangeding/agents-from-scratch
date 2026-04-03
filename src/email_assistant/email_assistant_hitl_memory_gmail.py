@@ -12,6 +12,7 @@ from email_assistant.tools.gmail.gmail_tools import mark_as_read
 from email_assistant.prompts import triage_system_prompt, triage_user_prompt, agent_system_prompt_hitl_memory, default_triage_instructions, default_background, default_response_preferences, default_cal_preferences, MEMORY_UPDATE_INSTRUCTIONS, MEMORY_UPDATE_INSTRUCTIONS_REINFORCEMENT
 from email_assistant.schemas import State, RouterSchema, StateInput, UserPreferences
 from email_assistant.utils import parse_gmail, format_for_display, format_gmail_markdown
+from email_assistant.llm_factory.factory import MyChatModel
 from dotenv import load_dotenv
 
 load_dotenv(".env")
@@ -20,12 +21,13 @@ load_dotenv(".env")
 tools = get_tools(["send_email_tool", "schedule_meeting_tool", "check_calendar_tool", "Question", "Done"], include_gmail=True)
 tools_by_name = get_tools_by_name(tools)
 
+my_chat_model = MyChatModel()
 # Initialize the LLM for use with router / structured output
-llm = init_chat_model("openai:gpt-4.1", temperature=0.0)
+llm = my_chat_model.create_model_dashscope()
 llm_router = llm.with_structured_output(RouterSchema) 
 
 # Initialize the LLM, enforcing tool use (of any available tools) for agent
-llm = init_chat_model("openai:gpt-4.1", temperature=0.0)
+llm = my_chat_model.create_model_dashscope()
 llm_with_tools = llm.bind_tools(tools, tool_choice="required")
 
 def get_memory(store, namespace, default_content=None):
@@ -67,7 +69,7 @@ def update_memory(store, namespace, messages):
     # Get the existing memory
     user_preferences = store.get(namespace, "user_preferences")
     # Update the memory
-    llm = init_chat_model("openai:gpt-4.1", temperature=0.0).with_structured_output(UserPreferences)
+    llm = init_chat_model("dashscope:qwen-plus", temperature=0.0).with_structured_output(UserPreferences)
     result = llm.invoke(
         [
             {"role": "system", "content": MEMORY_UPDATE_INSTRUCTIONS.format(current_profile=user_preferences.value, namespace=namespace)},

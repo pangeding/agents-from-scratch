@@ -10,20 +10,22 @@ from email_assistant.tools.default.prompt_templates import HITL_TOOLS_PROMPT
 from email_assistant.prompts import triage_system_prompt, triage_user_prompt, agent_system_prompt_hitl, default_background, default_triage_instructions, default_response_preferences, default_cal_preferences
 from email_assistant.schemas import State, RouterSchema, StateInput
 from email_assistant.utils import parse_email, format_for_display, format_email_markdown
+from email_assistant.llm_factory.factory import MyChatModel
 from dotenv import load_dotenv
 
 load_dotenv(".env")
 
+my_chat_model = MyChatModel()
 # Get tools
 tools = get_tools(["write_email", "schedule_meeting", "check_calendar_availability", "Question", "Done"])
 tools_by_name = get_tools_by_name(tools)
 
 # Initialize the LLM for use with router / structured output
-llm = init_chat_model("openai:gpt-4.1", temperature=0.0)
+llm = my_chat_model.create_model_dashscope()
 llm_router = llm.with_structured_output(RouterSchema) 
 
 # Initialize the LLM, enforcing tool use (of any available tools) for agent
-llm = init_chat_model("openai:gpt-4.1", temperature=0.0)
+llm = my_chat_model.create_model_dashscope()
 llm_with_tools = llm.bind_tools(tools, tool_choice="required")
 
 # Nodes 
